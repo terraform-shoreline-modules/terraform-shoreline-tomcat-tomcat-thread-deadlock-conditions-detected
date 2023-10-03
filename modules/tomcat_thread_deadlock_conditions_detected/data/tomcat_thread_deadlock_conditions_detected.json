@@ -1,0 +1,154 @@
+{
+  "name": "tomcat_thread_deadlock_conditions_detected",
+  "description": "Thread deadlock conditions occur when two or more threads are blocked and waiting for each other to release a resource, causing a system to hang or become unresponsive. In the context of a Tomcat server, this could cause the server to stop responding to incoming requests. Detection of thread deadlock conditions on Tomcat is an indication of a critical issue that requires immediate attention to restore normal server operation.",
+  "params": [
+    {
+      "name": "NEW_THREAD_POOL_SIZE",
+      "value": ""
+    },
+    {
+      "name": "PID_OF_TOMCAT",
+      "value": ""
+    },
+    {
+      "name": "PATH_TO_TOMCAT",
+      "value": ""
+    },
+    {
+      "name": "PATH_TO_SERVER_XML",
+      "value": ""
+    },
+    {
+      "name": "PATH_TO_TOMCAT_HOME",
+      "value": ""
+    },
+    {
+      "name": "HOST_NAME",
+      "value": ""
+    },
+    {
+      "name": "K8S_CLUSTER_NAME",
+      "value": ""
+    },
+    {
+      "name": "NAMESPACE",
+      "value": ""
+    }
+  ],
+  "cells": [
+    {
+      "name": "cell_1",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Tomcat Thread Deadlock Conditions Detected\nThread deadlock conditions occur when two or more threads are blocked and waiting for each other to release a resource, causing a system to hang or become unresponsive. In the context of a Tomcat server, this could cause the server to stop responding to incoming requests. Detection of thread deadlock conditions on Tomcat is an indication of a critical issue that requires immediate attention to restore normal server operation."
+    },
+    {
+      "name": "cell_2",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the number of threads that Tomcat is currently running"
+    },
+    {
+      "name": "cell_3",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `ps aux | grep tomcat`"
+    },
+    {
+      "name": "cell_4",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the number of idle threads"
+    },
+    {
+      "name": "cell_5",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_detect_deadlocks($PID_OF_TOMCAT, $PATH_TO_TOMCAT)"
+    },
+    {
+      "name": "cell_6",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the status of the Tomcat server"
+    },
+    {
+      "name": "cell_7",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `sudo systemctl status tomcat`"
+    },
+    {
+      "name": "cell_8",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the server logs for errors related to thread deadlock"
+    },
+    {
+      "name": "cell_9",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `cat ${PATH_TO_TOMCAT}/logs/catalina.out | grep \"deadlock\"`"
+    },
+    {
+      "name": "cell_10",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the current memory usage of Tomcat"
+    },
+    {
+      "name": "cell_11",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `jmap -heap ${PID_OF_TOMCAT}`"
+    },
+    {
+      "name": "cell_12",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check which threads are holding onto locks"
+    },
+    {
+      "name": "cell_13",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `${PATH_TO_TOMCAT}/bin/jstack ${PID_OF_TOMCAT} | grep -E \"^\\\".*\\\".*$|^.*waiting on.*$\"`"
+    },
+    {
+      "name": "cell_14",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Incorrect synchronization of threads leading to deadlock."
+    },
+    {
+      "name": "cell_15",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_jvm_deadlock_check()"
+    },
+    {
+      "name": "cell_16",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Restart Tomcat: This is the most common solution to fix the thread deadlock conditions. Restarting Tomcat forces all threads to stop and start fresh."
+    },
+    {
+      "name": "cell_17",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_stop_start_tomcat()"
+    },
+    {
+      "name": "cell_18",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Increase Thread Pool Size: A deadlock can occur when there are not enough threads available to execute requests. Increasing the size of the thread pool can help avoid deadlock conditions."
+    },
+    {
+      "name": "cell_19",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_update_thread_pool($NEW_THREAD_POOL_SIZE, $PATH_TO_SERVER_XML, $PATH_TO_TOMCAT_HOME)"
+    }
+  ]
+}
